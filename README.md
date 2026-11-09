@@ -23,13 +23,14 @@ One probe, two spectra, one number that matters: the **alpha gap**.
 
 ## ⚡ Install
 
-GPU (default):
+CPU execution is the default; the script does not explicitly move the model to
+a GPU. Install a PyTorch build appropriate for your platform:
 
     pip install torch
     pip install -r requirements.txt
 
 <details>
-<summary>🖥️ CPU-only variant</summary>
+<summary>🖥️ Explicit CPU-only PyTorch build</summary>
 
     pip install --index-url https://download.pytorch.org/whl/cpu torch
     pip install -r requirements.txt
@@ -41,6 +42,12 @@ GPU (default):
     python powerlaw_probe.py --model Qwen/Qwen2.5-0.5B-Instruct
 
 Output: console JSON + `powerlaw_report.json`.
+
+The current layer lookup supports models exposing `model.layers` or
+`transformer.h`. `--layer -1` selects the middle layer; otherwise `--layer`
+must be a zero-based index in range. The tokenizer for `--model` must load
+successfully; tokenizer errors are reported rather than silently substituting
+another model's vocabulary.
 
 ## 🧪 Tests
 

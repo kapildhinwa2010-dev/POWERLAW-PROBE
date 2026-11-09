@@ -10,7 +10,7 @@ Compute the singular value spectrum of (a) a live activation matrix and
 If the two alphas disagree, the weights are a compressed picture of the
 behavior, not the behavior itself.
 
-GPU-first, CPU-supported. No training. Bounded evaluation.
+CPU-default (the model is not explicitly moved to a GPU). No training. Bounded evaluation.
 """
 
 __version__ = "0.1.0"
@@ -31,11 +31,17 @@ def get_layers(model):
     raise ValueError("unsupported architecture")
 
 
+def resolve_layer_index(requested, n_layers):
+    """Resolve -1 to the middle layer and reject every other invalid index."""
+    idx = n_layers // 2 if requested == -1 else requested
+    if n_layers < 1 or idx < 0 or idx >= n_layers:
+        raise ValueError(f"--layer must be -1 or an index from 0 to {n_layers - 1}; got {requested}")
+    return idx
+
+
 def load_tok(name):
-    try:
-        return AutoTokenizer.from_pretrained(name)
-    except Exception:
-        return AutoTokenizer.from_pretrained("gpt2")
+    """Load the tokenizer for the selected model; never substitute another vocabulary."""
+    return AutoTokenizer.from_pretrained(name)
 
 
 def layer_weight(layer):
@@ -63,9 +69,11 @@ def collect_activations(model, tok, prompt, layer_idx, max_len=64):
         acts.append(y.reshape(-1, y.shape[-1]).float().cpu())
 
     handle = get_layers(model)[layer_idx].register_forward_hook(hook)
-    ids = tok(prompt, return_tensors="pt").input_ids[:, :max_len]
-    model(ids)
-    handle.remove()
+    try:
+        ids = tok(prompt, return_tensors="pt").input_ids[:, :max_len]
+        model(ids)
+    finally:
+        handle.remove()
     return torch.cat(acts, dim=0)
 
 
@@ -79,11 +87,12 @@ def spectrum_singulars(M):
 
 def powerlaw_alpha(singulars, skip=1):
     """Fit log(s) vs log(rank) on the tail after the top 'skip' values."""
-    s = singulars[skip:]
-    s = s[s > 1e-12]
+    tail = singulars[skip:]
+    mask = tail > 1e-12
+    s = tail[mask]
     if len(s) < 4:
         return None
-    ranks = np.arange(1, len(s) + 1)
+    ranks = np.arange(skip + 1, skip + len(tail) + 1)[mask]
     slope = np.polyfit(np.log(ranks), np.log(s), 1)[0]
     return float(-slope)
 
@@ -119,7 +128,10 @@ def main():
     model.eval()
 
     n_layers = len(get_layers(model))
-    idx = n_layers // 2 if a.layer == -1 else a.layer
+    try:
+        idx = resolve_layer_index(a.layer, n_layers)
+    except ValueError as exc:
+        ap.error(str(exc))
     report = {"model": a.model, "n_layers": n_layers, "probe": probe(model, tok, a.prompt, idx)}
 
     print(json.dumps(report, indent=2))
