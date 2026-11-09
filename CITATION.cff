@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use powerlaw-probe in your research, please cite it as below."
+title: "POWERLAW-PROBE: do activations and weights share a shape"
+authors:
+  - family-names: Dhinwa
+    given-names: Kapil
+version: 0.1.0
+date-released: "2026-11-09"
+license: MIT
+repository-code: "https://github.com/kapildhinwa2010-dev/POWERLAW-PROBE"
+abstract: "Fits power-law exponents to the singular value spectra of a live activation matrix and the same layer's weight matrix; the alpha gap is a fingerprint of the layer."
