@@ -55,7 +55,7 @@ def test_alpha_finite(setup):
 
 def test_alpha_uses_original_spectral_ranks():
     # After skipping rank 1, the remaining values are exactly 1/rank.
-    singulars = np.array([10.0, 1.0, 0.5, 1.0 / 3, 0.25, 0.2])
+    singulars = np.array([10.0, 1.0 / 2, 1.0 / 3, 1.0 / 4, 1.0 / 5, 1.0 / 6])
     assert powerlaw_alpha(singulars, skip=1) == pytest.approx(1.0)
 
 
